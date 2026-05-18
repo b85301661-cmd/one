@@ -20,8 +20,8 @@
       "dest": "api/index.ts"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "src": "/(.*\.(js|css|png|gif|svg|ico|json|txt|woff2?))$",
+      "dest": "/$1"
     },
     {
       "src": "/(.*)",
