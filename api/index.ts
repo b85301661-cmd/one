@@ -37,10 +37,12 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Simple auth middleware
+// Simple auth middleware - added .trim() to eliminate accidental trailing spaces from Vercel UI inputs
 const adminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   const password = req.headers['x-admin-password'];
-  if (password === (process.env.ADMIN_PASSWORD || "admin123")) {
+  const correctPassword = (process.env.ADMIN_PASSWORD || "admin123").trim();
+  
+  if (password === correctPassword) {
     next();
   } else {
     res.status(401).json({ error: "Unauthorized access detected." });
@@ -50,7 +52,9 @@ const adminAuth = (req: express.Request, res: express.Response, next: express.Ne
 // Auth endpoint
 app.post("/api/admin/login", (req, res) => {
   const { password } = req.body;
-  if (password === (process.env.ADMIN_PASSWORD || "admin123")) {
+  const correctPassword = (process.env.ADMIN_PASSWORD || "admin123").trim();
+
+  if (password === correctPassword) {
     res.json({ success: true });
   } else {
     res.status(401).json({ error: "Invalid credentials" });
@@ -137,7 +141,6 @@ app.patch("/api/track/:id", adminAuth, async (req, res) => {
     shipments[index].timeline.push({ status: cleanStatus, time: new Date().toLocaleString() });
   }
   await saveShipments(shipments);
-  // Note: Vercel Serverless Functions don't support Socket.io, so this won't broadcast.
   res.json(shipments[index]);
 });
 
