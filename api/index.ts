@@ -37,30 +37,6 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Simple auth middleware - added .trim() to eliminate accidental trailing spaces from Vercel UI inputs
-const adminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const password = req.headers['x-admin-password'];
-  const correctPassword = (process.env.ADMIN_PASSWORD || "admin123").trim();
-  
-  if (password === correctPassword) {
-    next();
-  } else {
-    res.status(401).json({ error: "Unauthorized access detected." });
-  }
-};
-
-// Auth endpoint
-app.post("/api/admin/login", (req, res) => {
-  const { password } = req.body;
-  const correctPassword = (process.env.ADMIN_PASSWORD || "admin123").trim();
-
-  if (password === correctPassword) {
-    res.json({ success: true });
-  } else {
-    res.status(401).json({ error: "Invalid credentials" });
-  }
-});
-
 app.get("/api/health", async (req, res) => {
   const firebaseActive = await checkFirebaseConnection();
   res.json({
@@ -71,7 +47,7 @@ app.get("/api/health", async (req, res) => {
 });
 
 // API Routes
-app.get("/api/shipments", adminAuth, async (req, res) => {
+app.get("/api/shipments", async (req, res) => {
   const shipments = await getShipments();
   res.json(shipments);
 });
@@ -86,7 +62,7 @@ app.get("/api/track/:id", async (req, res) => {
   }
 });
 
-app.post("/api/shipments", adminAuth, async (req, res) => {
+app.post("/api/shipments", async (req, res) => {
   const { customerName, packageName, origin, destination } = req.body;
 
   if (
@@ -122,7 +98,7 @@ app.post("/api/shipments", adminAuth, async (req, res) => {
   res.json(newShipment);
 });
 
-app.patch("/api/track/:id", adminAuth, async (req, res) => {
+app.patch("/api/track/:id", async (req, res) => {
   const shipments = await getShipments();
   const { progress, status } = req.body;
   const index = shipments.findIndex((s: any) => s.id === req.params.id);
@@ -144,7 +120,7 @@ app.patch("/api/track/:id", adminAuth, async (req, res) => {
   res.json(shipments[index]);
 });
 
-app.delete("/api/shipments/:id", adminAuth, async (req, res) => {
+app.delete("/api/shipments/:id", async (req, res) => {
   const shipments = await getShipments();
   const filtered = shipments.filter((s: any) => s.id !== req.params.id);
   if (filtered.length === shipments.length) {

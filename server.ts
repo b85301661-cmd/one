@@ -53,26 +53,6 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Simple auth middleware
-  const adminAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const password = req.headers['x-admin-password'];
-    if (password === (process.env.ADMIN_PASSWORD || "admin123")) {
-      next();
-    } else {
-      res.status(401).json({ error: "Unauthorized access detected." });
-    }
-  };
-
-  // Auth endpoint
-  app.post("/api/admin/login", (req, res) => {
-    const { password } = req.body;
-    if (password === (process.env.ADMIN_PASSWORD || "admin123")) {
-      res.json({ success: true });
-    } else {
-      res.status(401).json({ error: "Invalid credentials" });
-    }
-  });
-
   app.get("/api/health", async (req, res) => {
     const firebaseActive = await checkFirebaseConnection();
     res.json({
@@ -83,7 +63,7 @@ async function startServer() {
   });
 
   // API Routes
-  app.get("/api/shipments", adminAuth, async (req, res) => {
+  app.get("/api/shipments", async (req, res) => {
     const shipments = await getShipments();
     res.json(shipments);
   });
@@ -98,7 +78,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/shipments", adminAuth, async (req, res) => {
+  app.post("/api/shipments", async (req, res) => {
     const { customerName, packageName, origin, destination } = req.body;
 
     if (
@@ -134,7 +114,7 @@ async function startServer() {
     res.json(newShipment);
   });
 
-  app.patch("/api/track/:id", adminAuth, async (req, res) => {
+  app.patch("/api/track/:id", async (req, res) => {
     const shipments = await getShipments();
     const { progress, status } = req.body;
     const index = shipments.findIndex((s: any) => s.id === req.params.id);
@@ -160,7 +140,7 @@ async function startServer() {
     res.json(shipments[index]);
   });
 
-  app.delete("/api/shipments/:id", adminAuth, async (req, res) => {
+  app.delete("/api/shipments/:id", async (req, res) => {
     const shipments = await getShipments();
     const filtered = shipments.filter((s: any) => s.id !== req.params.id);
     if (filtered.length === shipments.length) {

@@ -9,10 +9,7 @@ const AdminPortal: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-  
+
   const [newShipment, setNewShipment] = useState({
     customerName: '',
     packageName: '',
@@ -34,55 +31,12 @@ const AdminPortal: React.FC = () => {
   };
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('swiftlog_admin_token');
-    if (saved) {
-      setAdminPassword(saved);
-      setIsAuthenticated(true);
-    } else {
-      setLoading(false);
-    }
+    fetchShipments();
   }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchShipments();
-    }
-  }, [isAuthenticated]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPassword })
-      });
-      
-      if (res.ok) {
-        sessionStorage.setItem('swiftlog_admin_token', adminPassword);
-        setIsAuthenticated(true);
-        setAuthError('');
-      } else {
-        setAuthError('Access Denied. Invalid Authorization Code.');
-      }
-    } catch (error) {
-      setAuthError('Connection failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchShipments = async () => {
     try {
-      const res = await fetch('/api/shipments', {
-        headers: { 'x-admin-password': adminPassword }
-      });
-      if (res.status === 401) {
-        setIsAuthenticated(false);
-        sessionStorage.removeItem('swiftlog_admin_token');
-        return;
-      }
+      const res = await fetch('/api/shipments');
       const data = await res.json();
       setShipments(data);
     } catch (error) {
@@ -97,8 +51,7 @@ const AdminPortal: React.FC = () => {
       const res = await fetch(`/api/track/${id}`, {
         method: 'PATCH',
         headers: { 
-          'Content-Type': 'application/json',
-          'x-admin-password': adminPassword
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ progress })
       });
@@ -116,10 +69,7 @@ const AdminPortal: React.FC = () => {
 
     try {
       const res = await fetch(`/api/shipments/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'x-admin-password': adminPassword
-        }
+        method: 'DELETE'
       });
       if (res.ok) {
         setShipments(prev => prev.filter(s => s.id !== id));
@@ -158,8 +108,7 @@ const AdminPortal: React.FC = () => {
       const res = await fetch('/api/shipments', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'x-admin-password': adminPassword
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -180,55 +129,6 @@ const AdminPortal: React.FC = () => {
   };
 
   if (loading) return <div className="flex items-center justify-center h-screen bg-slate-900"><Loader2 className="animate-spin text-amber-500" /></div>;
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-fdx-purple flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-sm bg-white p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
-        >
-          <div className="text-center mb-8">
-            <img src={FDX_LOGO_URL} alt="Fdx Logo" className="h-16 mx-auto mb-6" />
-            <h1 className="text-2xl font-black text-fdx-purple tracking-tight">Fleet Login</h1>
-            <p className="text-slate-400 text-[10px] uppercase font-bold tracking-[0.3em] mt-2">Secure Operations Access</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Security Key</label>
-              <input 
-                type="password"
-                required
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="Manager Passcode"
-                className="w-full bg-slate-50 border border-slate-200 p-4 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-fdx-orange transition-all font-mono placeholder:text-slate-300"
-              />
-            </div>
-            
-            {authError && (
-              <p className="text-red-500 text-[10px] font-black uppercase text-center bg-red-500/5 py-2 rounded-lg border border-red-500/10">
-                {authError}
-              </p>
-            )}
-
-            <button 
-              type="submit"
-              className="w-full bg-fdx-orange text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest hover:brightness-110 transition-all shadow-xl active:scale-95"
-            >
-              Authorize Access
-            </button>
-          </form>
-          
-          <p className="text-slate-400 text-[9px] text-center mt-8 uppercase font-bold tracking-tighter">
-            Fdx Internal Logistics Portal
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans overflow-x-hidden">
@@ -306,14 +206,10 @@ const AdminPortal: React.FC = () => {
                 <Plus className="w-3.5 h-3.5" /> New Dispatch
               </button>
               <button 
-                onClick={() => {
-                  sessionStorage.removeItem('swiftlog_admin_token');
-                  setIsAuthenticated(false);
-                  setAdminPassword('');
-                }}
-                className="text-[10px] font-black text-slate-400 hover:text-red-500 uppercase tracking-tighter"
+                onClick={fetchShipments}
+                className="text-[10px] font-black text-slate-400 hover:text-fdx-orange uppercase tracking-tighter"
               >
-                Secure Exit
+                Refresh Shipments
               </button>
             </div>
           </div>
